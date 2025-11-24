@@ -1,18 +1,31 @@
-# Use a small Node base image
-FROM node:20-alpine
+# Build stage
+FROM golang:1.22-alpine AS builder
 
-# Create app directory
 WORKDIR /app
 
-# Copy package files and install (if any dependencies)
-COPY package*.json ./
-RUN npm install --only=production
+# Copy go module files and download deps (none extra, but good pattern)
+COPY go.mod ./
+RUN go mod download
 
-# Copy the rest of the app
+# Copy the rest of the source code
 COPY . .
 
-# Tell Render (and Docker) which port the app listens on
+# Build the Go binary
+RUN go build -o server main.go
+
+# Run stage
+FROM alpine:3.20
+
+WORKDIR /app
+
+# Copy the binary
+COPY --from=builder /app/server .
+
+# Copy static files
+COPY static ./static
+
+# Expose port (Render sets PORT env var)
 EXPOSE 3000
 
-# Start the app
-CMD ["npm", "start"]
+# Start the server
+CMD ["./server"]
