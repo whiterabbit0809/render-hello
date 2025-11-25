@@ -1,0 +1,28 @@
+# --- Go build artifacts ---
+/server
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Binaries / build dirs
+bin/
+dist/
+
+# --- Editor / OS cruft ---
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# --- Node / frontend (just in case) ---
+node_modules/
+
+# --- Environment files (secrets) ---
+.env
+.env.*
+!.env.example

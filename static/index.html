@@ -3,27 +3,110 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Go + Render Hello</title>
+  <title>Go + Render Calculator</title>
 </head>
 <body>
   <h1>Hello from Go on Render!</h1>
   <p>This page is being served by a Go server running in Docker on Render.</p>
 
+  <!-- Simple persistent calculator UI -->
+  <h2>Persistent Calculator</h2>
+  <p>Current result: <span id="result">loading...</span></p>
+
+  <label for="input-a">Add this number to the result:</label>
+  <input type="number" id="input-a" step="any" />
+  <button id="add">Add</button>
+
+  <hr />
+
+  <!-- Existing hello test -->
   <button id="load">Call /api/hello</button>
+
+  <h3>Debug output</h3>
   <pre id="output"></pre>
 
   <script>
-    document.getElementById("load").addEventListener("click", () => {
-      fetch("/api/hello")
-        .then(r => r.json())
+    const resultEl = document.getElementById("result");
+    const outputEl = document.getElementById("output");
+    const inputAEl = document.getElementById("input-a");
+
+    function log(message) {
+      outputEl.textContent = message;
+    }
+
+    // Fetch current result from /api/result
+    function fetchResult() {
+      fetch("/api/result")
+        .then(r => {
+          if (!r.ok) {
+            throw new Error("HTTP " + r.status);
+          }
+          return r.json();
+        })
         .then(data => {
-          document.getElementById("output").textContent =
-            JSON.stringify(data, null, 2);
+          resultEl.textContent = data.value;
+          log("Fetched current result: " + data.value);
         })
         .catch(err => {
-          document.getElementById("output").textContent = "Error: " + err;
+          resultEl.textContent = "error";
+          log("Error fetching result: " + err);
+        });
+    }
+
+    // Send a number to /api/add
+    function addValue() {
+      const raw = inputAEl.value;
+      const a = Number(raw);
+
+      if (raw === "" || Number.isNaN(a)) {
+        log("Please enter a valid number.");
+        return;
+      }
+
+      fetch("/api/add", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ a: a })
+      })
+        .then(r => {
+          if (!r.ok) {
+            throw new Error("HTTP " + r.status);
+          }
+          return r.json();
+        })
+        .then(data => {
+          resultEl.textContent = data.value;
+          log("Added " + a + " → new result: " + data.value);
+          inputAEl.value = "";
+        })
+        .catch(err => {
+          log("Error calling /api/add: " + err);
+        });
+    }
+
+    // Existing /api/hello test
+    document.getElementById("load").addEventListener("click", () => {
+      fetch("/api/hello")
+        .then(r => {
+          if (!r.ok) {
+            throw new Error("HTTP " + r.status);
+          }
+          return r.json();
+        })
+        .then(data => {
+          outputEl.textContent = JSON.stringify(data, null, 2);
+        })
+        .catch(err => {
+          outputEl.textContent = "Error: " + err;
         });
     });
+
+    document.getElementById("add").addEventListener("click", addValue);
+
+    // Load the current result when the page is opened
+    window.addEventListener("load", fetchResult);
   </script>
 </body>
 </html>
